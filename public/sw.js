@@ -48,21 +48,37 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Skip non-GET requests (POST, PUT, DELETE, etc.)
+  if (request.method !== 'GET') {
+    return
+  }
+
   // API requests - network first, cache fallback
   if (request.url.includes('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone response to cache
-          const responseClone = response.clone()
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseClone)
-          })
+          // Only cache successful GET requests
+          if (request.method === 'GET' && response && response.status === 200) {
+            const responseClone = response.clone()
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone).catch(() => {
+                // Silently fail cache operations
+              })
+            })
+          }
           return response
         })
         .catch(() => {
-          // Return cached version if offline
-          return caches.match(request)
+          // Return cached version if offline (GET only)
+          if (request.method === 'GET') {
+            return caches.match(request)
+          }
+          // Return a basic error response for other methods
+          return new Response(JSON.stringify({ error: 'Network request failed' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
         })
     )
     return

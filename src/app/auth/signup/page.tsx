@@ -82,7 +82,7 @@ export default function SignUpPage() {
           <div className="space-y-8">
             <div>
               <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-                Join Scotland's Leading Compliance Platform
+                Join Scotland&apos;s Leading Compliance Platform
               </h1>
               <p className="text-xl text-blue-100">
                 Trusted by hundreds of letting agents and landlords across Scotland

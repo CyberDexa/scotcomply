@@ -1,0 +1,1207 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTHENTICATION & USERS ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          UserRole  @default(LANDLORD)
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Notification Preferences
+  emailNotificationsEnabled Boolean  @default(true)
+  emailFrequency            String   @default("daily") // daily, weekly, disabled
+  lastNotificationSent      DateTime?
+
+  // User Profile Settings
+  phone           String?
+  company         String?
+  address         String?
+  postcode        String?
+  timezone        String   @default("Europe/London")
+  language        String   @default("en")
+  
+  // Display & UI Preferences
+  theme           String   @default("light") // light, dark, system
+  dateFormat      String   @default("DD/MM/YYYY")
+  currency        String   @default("GBP")
+  
+  // Notification Type Preferences (JSON)
+  notificationPreferences Json? // { certificates: { email: true, sms: false }, maintenance: { email: true, sms: true }, ... }
+
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  landlordProfile       LandlordProfile?
+  agentProfile          AgentProfile?
+  properties            Property[]
+  certificates          Certificate[]
+  landlordRegistrations LandlordRegistration[]
+  hmoLicenses           HMOLicense[]
+  repairingAssessments  RepairingStandardAssessment[]
+  amlScreenings         AMLScreening[]
+  notifications         Notification[]
+  documentTemplates     DocumentTemplate[]
+  emails                Email[]
+  maintenanceRequests   MaintenanceRequest[]
+  importJobs            ImportJob[]
+  searchHistory         SearchHistory[]
+  savedSearches         SavedSearch[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==================== USER PROFILES ====================
+
+model LandlordProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  businessName    String?
+  phoneNumber     String
+  address         String
+  portfolioSize   Int      @default(0)
+  preferredMethod String   @default("email")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("landlord_profiles")
+}
+
+model AgentProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  agencyName      String
+  licenseNumber   String   @unique
+  phoneNumber     String
+  address         String
+  clientCount     Int      @default(0)
+  subscriptionPlan String   @default("starter")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managedProperties AgentPropertyLink[]
+
+  @@map("agent_profiles")
+}
+
+model AgentPropertyLink {
+  id         String   @id @default(cuid())
+  agentId    String
+  propertyId String
+  startDate  DateTime @default(now())
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+
+  agent    AgentProfile @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  property Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, propertyId])
+  @@map("agent_property_links")
+}
+
+// ==================== PROPERTIES ====================
+
+model Property {
+  id             String   @id @default(cuid())
+  ownerId        String
+  address        String
+  postcode       String
+  councilArea    String
+  propertyType   String
+  bedrooms       Int
+  isHMO          Boolean  @default(false)
+  hmoOccupancy   Int?
+  tenancyStatus  String   @default("vacant")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  owner                    User                          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  agents                   AgentPropertyLink[]
+  certificates             Certificate[]
+  landlordRegistrations    LandlordRegistration[]
+  hmoLicenses              HMOLicense[]
+  repairingAssessments     RepairingStandardAssessment[]
+  reminders                Reminder[]
+  tenants                  Tenant[]
+  maintenanceRequests      MaintenanceRequest[]
+  leases                   Lease[]
+  transactions             Transaction[]
+  financialReports         FinancialReport[]
+
+  @@index([ownerId])
+  @@index([councilArea])
+  @@map("properties")
+}
+
+// ==================== LANDLORD REGISTRATION ====================
+
+model LandlordRegistration {
+  id                 String   @id @default(cuid())
+  userId             String
+  propertyId         String
+  councilArea        String
+  registrationNumber String
+  applicationDate    DateTime
+  approvalDate       DateTime?
+  expiryDate         DateTime
+  status             String
+  renewalFee         Float
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([expiryDate])
+  @@map("landlord_registrations")
+}
+
+// ==================== CERTIFICATES ====================
+
+model Certificate {
+  id               String    @id @default(cuid())
+  userId           String
+  propertyId       String
+  certificateType  String
+  issueDate        DateTime
+  expiryDate       DateTime
+  providerName     String
+  providerContact  String?
+  documentUrl      String?
+  status           String    @default("valid")
+  reminderSent     Boolean   @default(false)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([expiryDate])
+  @@index([certificateType])
+  @@map("certificates")
+}
+
+// ==================== HMO LICENSING ====================
+
+model HMOLicense {
+  id                    String    @id @default(cuid())
+  userId                String
+  propertyId            String
+  licenseNumber         String    @unique
+  applicationDate       DateTime
+  approvalDate          DateTime?
+  expiryDate            DateTime
+  occupancyLimit        Int
+  councilArea           String
+  status                String
+  annualFee             Float
+  fireSafetyCompliant   Boolean   @default(false)
+  lastInspectionDate    DateTime?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([expiryDate])
+  @@map("hmo_licenses")
+}
+
+// ==================== REPAIRING STANDARD ====================
+
+model RepairingStandardAssessment {
+  id                String   @id @default(cuid())
+  userId            String
+  propertyId        String
+  assessmentDate    DateTime
+  overallStatus     String   @default("pending")
+  score             Int      @default(0)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  items  RepairItem[]
+
+  @@index([userId])
+  @@index([propertyId])
+  @@map("repairing_standard_assessments")
+}
+
+model RepairItem {
+  id           String   @id @default(cuid())
+  assessmentId String
+  category     String
+  description  String
+  status       String   @default("compliant")
+  priority     String   @default("medium")
+  dueDate      DateTime?
+  completedDate DateTime?
+  cost         Float?
+  evidenceUrl  String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assessment RepairingStandardAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("repair_items")
+}
+
+// ==================== AML & COMPLIANCE ====================
+
+model AMLScreening {
+  id              String         @id @default(cuid())
+  userId          String
+  
+  // Subject Information
+  subjectType     SubjectType    // INDIVIDUAL or COMPANY
+  subjectName     String         // Full name or company name
+  subjectEmail    String?
+  subjectPhone    String?
+  dateOfBirth     DateTime?      // For individuals
+  nationality     String?
+  companyNumber   String?        // For companies
+  
+  // Screening Details
+  screeningDate   DateTime       @default(now())
+  status          ScreeningStatus @default(PENDING)
+  riskLevel       RiskLevel?     // LOW, MEDIUM, HIGH, CRITICAL
+  riskScore       Int?           // 0-100
+  
+  // Match Results
+  matchFound      Boolean        @default(false)
+  sanctionsMatch  Boolean        @default(false)
+  pepMatch        Boolean        @default(false)  // Politically Exposed Person
+  adverseMedia    Boolean        @default(false)
+  
+  // Review & EDD
+  reviewStatus    ReviewStatus   @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  eddRequired     Boolean        @default(false)  // Enhanced Due Diligence
+  eddCompleted    Boolean        @default(false)
+  eddNotes        String?        @db.Text
+  
+  // Annual Review
+  nextReviewDate  DateTime?
+  lastReviewDate  DateTime?
+  
+  // Cost Tracking
+  screeningCost   Decimal?       @db.Decimal(10, 2)
+  
+  // Additional Info
+  notes           String?        @db.Text
+  metadata        Json?          // API response, additional data
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matches AMLMatch[]
+  audits  AMLAudit[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([riskLevel])
+  @@index([nextReviewDate])
+  @@map("aml_screenings")
+}
+
+model AMLMatch {
+  id            String       @id @default(cuid())
+  screeningId   String
+  
+  // Match Details
+  matchType     MatchType    // SANCTIONS, PEP, ADVERSE_MEDIA, WATCHLIST
+  entityName    String
+  matchScore    Int          // 0-100 confidence score
+  aliases       String[]     // Alternative names
+  
+  // Source Information
+  listName      String       // e.g., "UN Sanctions List", "UK PEP List"
+  listType      String       // e.g., "sanctions", "pep", "adverse_media"
+  sourceUrl     String?
+  
+  // Match Data
+  dateOfBirth   DateTime?
+  nationality   String[]
+  positions     String[]     // For PEPs
+  
+  // Review Decision
+  reviewStatus  ReviewStatus @default(PENDING)
+  decision      MatchDecision? // ACCEPT (true positive), REJECT (false positive)
+  reviewedAt    DateTime?
+  reviewNotes   String?      @db.Text
+  
+  // Additional Info
+  metadata      Json?        // Full API match data
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  screening AMLScreening @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+
+  @@index([screeningId])
+  @@index([matchType])
+  @@index([reviewStatus])
+  @@map("aml_matches")
+}
+
+model AMLAudit {
+  id          String   @id @default(cuid())
+  screeningId String
+  
+  // Audit Details
+  action      String   // SCREENING_INITIATED, MATCH_REVIEWED, EDD_COMPLETED, ANNUAL_REVIEW, etc.
+  performedBy String?  // User ID or system
+  description String   @db.Text
+  
+  // Change Tracking
+  oldValue    Json?
+  newValue    Json?
+  
+  createdAt   DateTime @default(now())
+
+  screening AMLScreening @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+
+  @@index([screeningId])
+  @@index([createdAt])
+  @@map("aml_audits")
+}
+
+// ==================== COUNCIL & REGULATORY ====================
+
+model CouncilData {
+  id                   String               @id @default(cuid())
+  councilName          String               @unique
+  councilArea          String               // Geographic area
+  population           Int?                 // Council area population
+  
+  // URLs
+  websiteUrl           String
+  landlordRegUrl       String?
+  hmoLicenseUrl        String?
+  
+  // Fees
+  registrationFee      Float
+  renewalFee           Float
+  hmoFee               Float?
+  lateRenewalPenalty   Float?
+  
+  // Processing
+  processingTimeDays   Int
+  urgentProcessingDays Int?
+  urgentProcessingFee  Float?
+  
+  // Contact Information
+  contactEmail         String?
+  contactPhone         String?
+  contactAddress       String?
+  contactPostcode      String?
+  
+  // Office Hours
+  officeHours          String?              // JSON: { monday: "9-5", tuesday: "9-5", ... }
+  
+  // Requirements
+  requiresGasSafety    Boolean              @default(true)
+  requiresEICR         Boolean              @default(true)
+  requiresEPC          Boolean              @default(true)
+  requiresLegionella   Boolean              @default(false)
+  requiresPAT          Boolean              @default(false)
+  
+  // Additional Info
+  notes                String?              @db.Text
+  metadata             Json?                // Additional custom data
+  
+  lastUpdated          DateTime             @updatedAt
+  createdAt            DateTime             @default(now())
+
+  alerts               RegulatoryAlert[]
+  changes              CouncilChange[]
+
+  @@index([councilName])
+  @@map("council_data")
+}
+
+model RegulatoryAlert {
+  id            String       @id @default(cuid())
+  councilId     String?      // Optional - can be system-wide
+  
+  // Alert Details
+  alertType     AlertType
+  category      AlertCategory
+  title         String
+  description   String       @db.Text
+  
+  // Dates
+  effectiveDate DateTime
+  expiryDate    DateTime?    // When alert is no longer relevant
+  
+  // Priority
+  severity      AlertSeverity @default(INFO)
+  priority      Int          @default(3) // 1-5 (5 = highest)
+  
+  // Source
+  sourceUrl     String?
+  sourceType    String?      // "Official", "News", "Community", etc.
+  
+  // Status
+  status        AlertStatus  @default(ACTIVE)
+  
+  // User Interaction
+  viewCount     Int          @default(0)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  council            CouncilData?         @relation(fields: [councilId], references: [id], onDelete: Cascade)
+  acknowledgements   AlertAcknowledgement[]
+
+  @@index([councilId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([status])
+  @@index([effectiveDate])
+  @@map("regulatory_alerts")
+}
+
+model CouncilChange {
+  id              String       @id @default(cuid())
+  councilId       String
+  
+  // Change Details
+  changeType      ChangeType
+  field           String       // Which field changed (e.g., "registrationFee")
+  oldValue        String?
+  newValue        String
+  
+  // Description
+  title           String
+  description     String?      @db.Text
+  
+  // Impact
+  impactLevel     ImpactLevel  @default(LOW)
+  affectsExisting Boolean      @default(false) // Affects current registrations/licenses
+  
+  // Dates
+  announcedDate   DateTime     @default(now())
+  effectiveDate   DateTime
+  
+  // Source
+  sourceUrl       String?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  council CouncilData @relation(fields: [councilId], references: [id], onDelete: Cascade)
+
+  @@index([councilId])
+  @@index([changeType])
+  @@index([effectiveDate])
+  @@map("council_changes")
+}
+
+model AlertAcknowledgement {
+  id        String   @id @default(cuid())
+  alertId   String
+  userId    String
+  
+  // Acknowledgement
+  acknowledged Boolean  @default(true)
+  readAt       DateTime @default(now())
+  dismissedAt  DateTime?
+  
+  createdAt DateTime @default(now())
+
+  alert RegulatoryAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, userId])
+  @@index([userId])
+  @@index([alertId])
+  @@map("alert_acknowledgements")
+}
+
+model AlertPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  
+  // Alert Delivery
+  emailEnabled          Boolean  @default(true)
+  inAppEnabled          Boolean  @default(true)
+  
+  // Frequency
+  immediateAlerts       Boolean  @default(true)  // High/critical only
+  dailyDigest           Boolean  @default(false)
+  weeklyDigest          Boolean  @default(true)
+  
+  // Alert Types
+  feeChangeAlerts       Boolean  @default(true)
+  requirementAlerts     Boolean  @default(true)
+  deadlineAlerts        Boolean  @default(true)
+  policyChangeAlerts    Boolean  @default(true)
+  systemAlerts          Boolean  @default(true)
+  
+  // Severity Filter
+  minSeverity           AlertSeverity @default(INFO)
+  
+  // Council Filter (JSON array of council IDs)
+  councilFilter         Json?    // null = all councils
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("alert_preferences")
+}
+
+// ==================== REMINDERS & NOTIFICATIONS ====================
+
+model Reminder {
+  id           String   @id @default(cuid())
+  propertyId   String
+  reminderType String
+  dueDate      DateTime
+  message      String
+  status       String   @default("pending")
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([dueDate])
+  @@map("reminders")
+}
+
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String   // certificate_expiring, assessment_due, hmo_expiring, registration_expiring, system
+  title           String
+  message         String
+  link            String?  // Link to relevant page
+  read            Boolean  @default(false)
+  readAt          DateTime?
+  priority        String   @default("normal") // low, normal, high, critical
+  metadata        Json?    // Additional data (propertyId, certificateId, etc.)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([type])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  emailEnabled              Boolean  @default(true)
+  inAppEnabled              Boolean  @default(true)
+  certificateExpiryEnabled  Boolean  @default(true)
+  assessmentDueEnabled      Boolean  @default(true)
+  hmoExpiryEnabled          Boolean  @default(true)
+  registrationExpiryEnabled Boolean  @default(true)
+  systemAlertsEnabled       Boolean  @default(true)
+  emailFrequency            String   @default("immediate") // immediate, daily, weekly
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+// ==================== DOCUMENT TEMPLATES ====================
+
+model DocumentTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  category    String   // tenant_notices, compliance_reports, maintenance, legal, custom
+  content     String   @db.Text // Rich text content with variable placeholders
+  variables   Json?    // Array of available variables: {tenant}, {property}, {landlord}, {date}, etc.
+  isPublic    Boolean  @default(false) // System templates vs user templates
+  isDefault   Boolean  @default(false) // Pre-built templates
+  metadata    Json?    // Additional settings (font, spacing, letterhead, etc.)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+  @@index([isDefault])
+  @@map("document_templates")
+}
+
+// ==================== EMAIL SYSTEM ====================
+
+model Email {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  to          String
+  from        String
+  subject     String
+  body        String      @db.Text
+  htmlBody    String?     @db.Text
+  type        EmailType
+  status      EmailStatus @default(PENDING)
+  errorMessage String?    @db.Text
+  sentAt      DateTime?
+  scheduledFor DateTime?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("emails")
+}
+
+// ==================== TENANT PORTAL ====================
+
+model Tenant {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  phone           String?
+  propertyId      String
+  property        Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  leaseStartDate  DateTime
+  leaseEndDate    DateTime?
+  depositAmount   Decimal   @db.Decimal(10, 2)
+  rentAmount      Decimal   @db.Decimal(10, 2)
+  isActive            Boolean              @default(true)
+  emailVerified       DateTime?
+  maintenanceRequests MaintenanceRequest[]
+  leases              Lease[]
+  transactions        Transaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([propertyId])
+  @@index([email])
+  @@map("tenants")
+}
+
+// ==================== MAINTENANCE REQUESTS ====================
+
+model MaintenanceRequest {
+  id              String                    @id @default(cuid())
+  propertyId      String
+  property        Property                  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId        String?
+  tenant          Tenant?                   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  category        MaintenanceCategory
+  priority        MaintenancePriority       @default(MEDIUM)
+  status          MaintenanceStatus         @default(SUBMITTED)
+  title           String
+  description     String                    @db.Text
+  location        String?
+  images          String[]
+  assignedTo      String?
+  estimatedCost   Decimal?                  @db.Decimal(10, 2)
+  actualCost      Decimal?                  @db.Decimal(10, 2)
+  scheduledDate   DateTime?
+  completedAt     DateTime?
+  notes           MaintenanceNote[]
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([priority])
+  @@map("maintenance_requests")
+}
+
+model MaintenanceNote {
+  id                   String             @id @default(cuid())
+  maintenanceRequestId String
+  maintenanceRequest   MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+  userId               String
+  content              String             @db.Text
+  images               String[]
+  createdAt            DateTime           @default(now())
+
+  @@index([maintenanceRequestId])
+  @@map("maintenance_notes")
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  LANDLORD
+  AGENT
+  ADMIN
+}
+
+enum MaintenanceCategory {
+  PLUMBING
+  ELECTRICAL
+  HEATING
+  APPLIANCES
+  STRUCTURAL
+  DOORS_WINDOWS
+  FLOORING
+  WALLS_CEILING
+  PEST_CONTROL
+  SECURITY
+  GARDEN
+  OTHER
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum MaintenanceStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum EmailType {
+  CERTIFICATE_EXPIRY
+  REGISTRATION_EXPIRY
+  HMO_EXPIRY
+  INSPECTION_REMINDER
+  ASSESSMENT_DUE
+  WELCOME
+  PASSWORD_RESET
+  DOCUMENT_SHARED
+  SYSTEM
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  SCHEDULED
+}
+
+// ==================== BULK OPERATIONS ====================
+
+model ImportJob {
+  id          String      @id @default(cuid())
+  userId      String
+  entityType  EntityType  // What is being imported
+  fileName    String      // Original CSV file name
+  status      ImportStatus @default(PENDING)
+  
+  // Counts
+  totalRows     Int       @default(0)
+  successCount  Int       @default(0)
+  errorCount    Int       @default(0)
+  
+  // Data
+  errors      Json?     // Array of error objects: [{ row: 5, field: 'address', message: 'Required' }]
+  metadata    Json?     // Additional import settings
+  
+  // Timestamps
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("import_jobs")
+}
+
+enum EntityType {
+  PROPERTY
+  CERTIFICATE
+  REGISTRATION
+  HMO_LICENSE
+  MAINTENANCE_REQUEST
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ==================== AML ENUMS ====================
+
+enum SubjectType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ScreeningStatus {
+  PENDING      // Screening initiated but not completed
+  IN_PROGRESS  // API call in progress
+  COMPLETED    // Screening finished
+  FAILED       // API error or timeout
+  REQUIRES_REVIEW // Matches found requiring manual review
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReviewStatus {
+  PENDING      // Not yet reviewed
+  IN_REVIEW    // Currently being reviewed
+  APPROVED     // Cleared for onboarding
+  REJECTED     // Too high risk
+  EDD_REQUIRED // Enhanced Due Diligence needed
+}
+
+enum MatchType {
+  SANCTIONS    // UN, OFAC, EU sanctions lists
+  PEP          // Politically Exposed Person
+  ADVERSE_MEDIA // Negative news coverage
+  WATCHLIST    // Other watchlists
+}
+
+enum MatchDecision {
+  ACCEPT       // True positive - valid match
+  REJECT       // False positive - not the same person
+}
+
+// ==================== COUNCIL & ALERT ENUMS ====================
+
+enum AlertType {
+  FEE_CHANGE           // Council fees updated
+  REQUIREMENT_CHANGE   // New or changed requirements
+  DEADLINE             // Important deadline approaching
+  POLICY_UPDATE        // Policy or regulation change
+  PROCESS_CHANGE       // Application process updated
+  CONTACT_CHANGE       // Council contact info changed
+  SYSTEM               // System-level announcement
+}
+
+enum AlertCategory {
+  LANDLORD_REGISTRATION
+  HMO_LICENSING
+  CERTIFICATES
+  FEES
+  COMPLIANCE
+  GENERAL
+}
+
+enum AlertSeverity {
+  INFO      // Informational
+  LOW       // Minor impact
+  MEDIUM    // Moderate impact
+  HIGH      // Significant impact
+  CRITICAL  // Urgent action required
+}
+
+enum AlertStatus {
+  ACTIVE    // Currently active
+  EXPIRED   // Past expiry date
+  ARCHIVED  // Manually archived
+}
+
+enum ChangeType {
+  FEE_INCREASE
+  FEE_DECREASE
+  REQUIREMENT_ADDED
+  REQUIREMENT_REMOVED
+  DEADLINE_CHANGE
+  PROCESS_UPDATE
+  CONTACT_UPDATE
+  OTHER
+}
+
+enum ImpactLevel {
+  LOW       // Minimal impact
+  MEDIUM    // Moderate impact
+  HIGH      // Significant impact
+  CRITICAL  // Major impact requiring immediate action
+}
+
+// ==================== SEARCH & FILTERING ====================
+
+model SearchHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  query        String
+  resultsCount Int      @default(0)
+  entityTypes  String   // Comma-separated list or "ALL"
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("search_history")
+}
+
+model SavedSearch {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  entityType String   // PROPERTY, CERTIFICATE, REGISTRATION, MAINTENANCE, HMO, ALL
+  query      String
+  filters    Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_searches")
+}
+
+// Note: Tenant management uses existing Tenant model at line ~738
+
+// ==================== LEASE MANAGEMENT ====================
+
+model Lease {
+  id              String       @id @default(cuid())
+  tenantId        String
+  propertyId      String
+  startDate       DateTime
+  endDate         DateTime
+  rentAmount      Decimal      @db.Decimal(10, 2)
+  paymentDay      Int          // Day of month (1-31)
+  paymentFrequency String      @default("MONTHLY") // WEEKLY, MONTHLY, QUARTERLY
+  depositAmount   Decimal      @db.Decimal(10, 2)
+  status          LeaseStatus  @default(ACTIVE)
+  documentUrl     String?
+  terms           Json?        // Custom lease terms
+  renewalDate     DateTime?
+  noticeGiven     Boolean      @default(false)
+  noticeDate      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  property        Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([endDate])
+  @@map("leases")
+}
+
+// ==================== FINANCIAL MANAGEMENT ====================
+
+model Transaction {
+  id              String            @id @default(cuid())
+  propertyId      String
+  tenantId        String?
+  type            TransactionType
+  category        String
+  amount          Decimal           @db.Decimal(10, 2)
+  date            DateTime
+  description     String
+  reference       String?
+  status          TransactionStatus @default(COMPLETED)
+  paymentMethod   String?           // BANK_TRANSFER, CASH, CARD, STANDING_ORDER
+  attachmentUrl   String?
+  taxDeductible   Boolean           @default(false)
+  vatAmount       Decimal?          @db.Decimal(10, 2)
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  property        Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant          Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([type])
+  @@index([category])
+  @@index([date])
+  @@map("transactions")
+}
+
+model FinancialReport {
+  id              String   @id @default(cuid())
+  userId          String
+  propertyId      String?  // Null for portfolio-wide reports
+  reportType      String   // MONTHLY, QUARTERLY, ANNUAL, TAX_YEAR
+  startDate       DateTime
+  endDate         DateTime
+  totalIncome     Decimal  @db.Decimal(10, 2)
+  totalExpenses   Decimal  @db.Decimal(10, 2)
+  netProfit       Decimal  @db.Decimal(10, 2)
+  data            Json     // Detailed breakdown
+  generatedAt     DateTime @default(now())
+  
+  property        Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([reportType])
+  @@index([startDate])
+  @@map("financial_reports")
+}
+
+// ==================== WORKFLOW AUTOMATION ====================
+
+model Workflow {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  trigger         WorkflowTrigger
+  active          Boolean         @default(true)
+  conditions      Json?           // Conditions that must be met
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  steps           WorkflowStep[]
+
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id              String       @id @default(cuid())
+  workflowId      String
+  order           Int
+  action          WorkflowAction
+  config          Json         // Action-specific configuration
+  delay           Int?         // Delay in days before executing
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  workflow        Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@map("workflow_steps")
+}
+
+// ==================== TENANT & FINANCIAL ENUMS ====================
+
+enum TenantStatus {
+  ACTIVE
+  NOTICE_GIVEN
+  MOVED_OUT
+  ARCHIVED
+}
+
+enum LeaseStatus {
+  DRAFT
+  ACTIVE
+  EXPIRING_SOON   // Within 2 months of end date
+  EXPIRED
+  TERMINATED
+  RENEWED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum WorkflowTrigger {
+  CERTIFICATE_EXPIRING      // 90, 60, 30 days before expiry
+  LEASE_EXPIRING            // 60, 30 days before end
+  MAINTENANCE_CREATED       // When maintenance request created
+  TENANT_MOVE_IN            // When new tenant moves in
+  TENANT_MOVE_OUT           // When tenant moves out
+  PAYMENT_OVERDUE           // When rent payment overdue
+  MANUAL                    // Manually triggered
+}
+
+enum WorkflowAction {
+  SEND_EMAIL
+  CREATE_TASK
+  SEND_NOTIFICATION
+  UPDATE_STATUS
+  GENERATE_DOCUMENT
+  TRIGGER_WEBHOOK
+}

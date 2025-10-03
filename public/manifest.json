@@ -1,12 +1,15 @@
 {
   "name": "ScotComply - Scottish Landlord Compliance",
   "short_name": "ScotComply",
-  "description": "Complete compliance management platform for Scottish landlords",
-  "start_url": "/dashboard",
+  "description": "Complete compliance management platform for Scottish landlords and letting agents",
+  "start_url": "/dashboard?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
-  "orientation": "portrait-primary",
+  "orientation": "any",
+  "dir": "ltr",
+  "lang": "en-GB",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

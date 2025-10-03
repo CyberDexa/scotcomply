@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bell, LogOut, Settings, User, CheckCheck, X, ExternalLink } from 'lucide-react'
+import { Bell, LogOut, Settings, User, CheckCheck, X, ExternalLink, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -24,7 +24,11 @@ const GlobalSearch = dynamic(
   { ssr: false }
 )
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession()
 
   // Get unread count
@@ -89,20 +93,36 @@ export function Header() {
   const unreadCount = unreadData?.count || 0
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-      <div>
+    <header className="flex h-16 items-center justify-between border-b bg-card px-4 lg:px-6">
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden mr-2"
+        onClick={onMenuClick}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      <div className="hidden lg:block">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Welcome back, {session?.user?.name || 'User'}
         </p>
       </div>
 
-      {/* Global Search */}
-      <div className="flex-1 max-w-md mx-6">
+      {/* Mobile: Show just app name */}
+      <div className="lg:hidden">
+        <h1 className="text-lg font-bold">ScotComply</h1>
+      </div>
+
+      {/* Global Search - Hidden on small mobile, visible on tablet+ */}
+      <div className="hidden md:flex flex-1 max-w-md mx-6">
         <GlobalSearch />
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 lg:space-x-4">
         {/* Notification Bell */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

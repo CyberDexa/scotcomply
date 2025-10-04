@@ -15,10 +15,25 @@ export default function RepairingStandardPage() {
   const [selectedProperty, setSelectedProperty] = useState<string>('')
   const [creating, setCreating] = useState(false)
 
-  const { data: propertiesData } = trpc.property.list.useQuery({ limit: 100 })
+  const { data: propertiesData } = trpc.property.list.useQuery({ limit: 100 }, {
+    retry: false,
+    onError: (error) => {
+      console.error('Failed to load properties:', error)
+    }
+  })
   const properties = propertiesData?.properties || []
-  const { data: assessments, isLoading, refetch } = trpc.repairingStandard.getAssessments.useQuery()
-  const { data: stats } = trpc.repairingStandard.getAssessmentStats.useQuery()
+  const { data: assessments, isLoading, refetch } = trpc.repairingStandard.getAssessments.useQuery(undefined, {
+    retry: false,
+    onError: (error) => {
+      console.error('Failed to load assessments:', error)
+    }
+  })
+  const { data: stats } = trpc.repairingStandard.getAssessmentStats.useQuery(undefined, {
+    retry: false,
+    onError: (error) => {
+      console.error('Failed to load stats:', error)
+    }
+  })
   const createAssessment = trpc.repairingStandard.createAssessment.useMutation()
 
   const handleCreateAssessment = async () => {
@@ -145,11 +160,17 @@ export default function RepairingStandardPage() {
                   <SelectValue placeholder="Select a property" />
                 </SelectTrigger>
                 <SelectContent>
-                  {properties?.map((property: { id: string; address: string }) => (
-                    <SelectItem key={property.id} value={property.id}>
-                      {property.address}
+                  {properties && properties.length > 0 ? (
+                    properties.map((property: { id: string; address: string }) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.address}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-properties" disabled>
+                      No properties available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>

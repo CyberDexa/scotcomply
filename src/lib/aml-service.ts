@@ -53,33 +53,12 @@ export interface AMLScreeningResult {
 /**
  * Mock AML Lists for Development
  */
-const MOCK_SANCTIONS_LIST = [
-  { name: 'John Smith', dob: '1975-03-15', nationality: ['Russia'], list: 'OFAC SDN List' },
-  { name: 'Ahmed Hassan', dob: '1980-07-22', nationality: ['Iran'], list: 'UN Consolidated List' },
-  { name: 'Vladimir Petrov', dob: '1972-11-30', nationality: ['Russia'], list: 'EU Sanctions List' },
-];
-
-const MOCK_PEP_LIST = [
-  { 
-    name: 'Robert Johnson', 
-    dob: '1965-05-10', 
-    nationality: ['United Kingdom'], 
-    positions: ['Former Member of Parliament', 'Government Minister'],
-    list: 'UK PEP Database'
-  },
-  { 
-    name: 'Maria Garcia', 
-    dob: '1970-08-15', 
-    nationality: ['Spain'], 
-    positions: ['Mayor', 'Regional Government Official'],
-    list: 'EU PEP Database'
-  },
-];
-
-const MOCK_ADVERSE_MEDIA = [
-  { name: 'David Williams', dob: '1982-02-20', nationality: ['United States'], list: 'Global News Archive' },
-  { name: 'Sarah Miller', dob: '1978-09-05', nationality: ['Canada'], list: 'Financial Crime Reports' },
-];
+// Old mock data removed - now using real data sources:
+// - OFAC SDN List (via sanctions-lists.ts)
+// - UN Consolidated List (via sanctions-lists.ts)
+// - EU Sanctions List (via sanctions-lists.ts)
+// - UK Companies House API (via companies-house.ts)
+// Mock PEP list moved below to avoid duplication
 
 /**
  * Perform AML screening using real data sources

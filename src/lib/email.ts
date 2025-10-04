@@ -29,6 +29,10 @@ export async function sendEmail({
   html?: string
   react?: React.ReactElement
 }) {
+  console.log('📧 sendEmail called with:', { to, subject, hasHtml: !!html, hasReact: !!react })
+  console.log('📧 Resend client configured:', !!resend)
+  console.log('📧 EMAIL_FROM:', env.EMAIL_FROM)
+  
   // Development fallback - log instead of sending
   if (!resend) {
     console.log('📧 [Email Preview - Resend Not Configured]')
@@ -43,6 +47,7 @@ export async function sendEmail({
   }
 
   try {
+    console.log('📧 Calling resend.emails.send...')
     const result = await resend.emails.send({
       from: env.EMAIL_FROM,
       to: Array.isArray(to) ? to : [to],
@@ -51,12 +56,24 @@ export async function sendEmail({
       react,
     })
 
+    console.log('📧 Resend API Response:', JSON.stringify(result, null, 2))
+
+    if (result.error) {
+      console.error('📧 Resend returned an error:', result.error)
+      return {
+        success: false,
+        error: result.error.message || 'Email sending failed',
+      }
+    }
+
+    console.log('✅ Email sent successfully! ID:', result.data?.id)
+
     return {
       success: true,
       data: result.data,
     }
   } catch (error) {
-    console.error('Failed to send email:', error)
+    console.error('📧 Exception in sendEmail:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

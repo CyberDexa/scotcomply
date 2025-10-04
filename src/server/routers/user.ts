@@ -43,6 +43,10 @@ export const userRouter = createTRPCRouter({
       })
 
       // Send welcome email asynchronously (don't block registration if it fails)
+      console.log('📧 Attempting to send welcome email to:', user.email)
+      console.log('📧 User name:', user.name)
+      console.log('📧 Dashboard URL:', `${env.APP_URL}/dashboard`)
+      
       sendEmail({
         to: user.email,
         subject: 'Welcome to ScotComply - Your Scottish Compliance Platform',
@@ -50,10 +54,17 @@ export const userRouter = createTRPCRouter({
           name: user.name,
           dashboardUrl: `${env.APP_URL}/dashboard`,
         }),
-      }).catch((error) => {
-        console.error('Failed to send welcome email to:', user.email, error)
-        // Don't throw - we don't want email failures to block registration
       })
+        .then((result) => {
+          if (result.success) {
+            console.log('✅ Welcome email sent successfully to:', user.email, 'Email ID:', result.data?.id)
+          } else {
+            console.error('❌ Failed to send welcome email to:', user.email, 'Error:', result.error)
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Exception while sending welcome email to:', user.email, error)
+        })
 
       return user
     }),

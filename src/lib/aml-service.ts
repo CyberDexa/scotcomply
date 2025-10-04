@@ -2,16 +2,18 @@
  * AML Screening Service
  * 
  * This service handles AML/sanctions screening for individuals and companies.
- * Currently uses mock data for development.
  * 
- * TODO: Integrate with ComplyAdvantage API or similar service
- * - API Key management
- * - Real-time screening
- * - Ongoing monitoring
- * - Webhook handling
+ * Data Sources:
+ * 1. Open-source sanctions lists (OFAC, UN, EU) - FREE
+ * 2. UK Companies House API - FREE
+ * 3. Mock PEP data (fallback until ComplyAdvantage integration)
+ * 
+ * Future: Integrate with ComplyAdvantage API for full coverage
  */
 
 import { SubjectType, MatchType, ReviewStatus, RiskLevel } from '@prisma/client';
+import { searchSanctions, initializeSanctionsLists } from './sanctions-lists';
+import { verifyUKCompany, searchUKCompanies } from './companies-house';
 
 export interface AMLScreeningRequest {
   subjectType: SubjectType;
@@ -80,44 +82,120 @@ const MOCK_ADVERSE_MEDIA = [
 ];
 
 /**
- * Perform AML screening (mock implementation)
+ * Perform AML screening using real data sources
  */
 export async function performAMLScreening(
   request: AMLScreeningRequest
 ): Promise<AMLScreeningResult> {
-  // Simulate API delay
-  await delay(1500);
-
   const matches: AMLMatch[] = [];
 
-  // Check sanctions lists
-  const sanctionsMatches = findMatches(
-    request.subjectName,
-    request.dateOfBirth,
-    MOCK_SANCTIONS_LIST,
-    MatchType.SANCTIONS
-  );
-  matches.push(...sanctionsMatches);
+  // Initialize sanctions lists if not already loaded
+  await initializeSanctionsLists();
 
-  // Check PEP lists (only for individuals)
+  // 1. Check against real sanctions lists (OFAC, UN, EU)
+  console.log(`🔍 Screening: ${request.subjectName}`);
+  const sanctionsMatches = await searchSanctions(request.subjectName, {
+    dateOfBirth: request.dateOfBirth?.toISOString().split('T')[0],
+    nationality: request.nationality,
+    type: request.subjectType === SubjectType.INDIVIDUAL ? 'individual' : 'entity',
+  });
+
+  // Convert sanctions matches to AMLMatch format
+  for (const sanctionMatch of sanctionsMatches) {
+    matches.push({
+      matchType: MatchType.SANCTIONS,
+      entityName: sanctionMatch.entity.name,
+      matchScore: sanctionMatch.matchScore,
+      aliases: sanctionMatch.entity.aliases,
+      listName: `${sanctionMatch.entity.list} Sanctions List`,
+      listType: 'sanctions',
+      sourceUrl: sanctionMatch.entity.listUrl,
+      dateOfBirth: sanctionMatch.entity.dateOfBirth
+        ? new Date(sanctionMatch.entity.dateOfBirth)
+        : undefined,
+      nationality: sanctionMatch.entity.nationality || [],
+      positions: [],
+      reviewStatus: ReviewStatus.PENDING,
+      metadata: {
+        programs: sanctionMatch.entity.programs,
+        remarks: sanctionMatch.entity.remarks,
+        matchReasons: sanctionMatch.matchReasons,
+      },
+    });
+  }
+
+  // 2. For UK companies, verify with Companies House
+  if (request.subjectType === SubjectType.COMPANY && request.companyNumber) {
+    const companyVerification = await verifyUKCompany(request.companyNumber);
+    
+    if (companyVerification.verified && companyVerification.company) {
+      const company = companyVerification.company;
+      
+      // Check for red flags
+      if (companyVerification.redFlags && companyVerification.redFlags.length > 0) {
+        matches.push({
+          matchType: MatchType.WATCHLIST,
+          entityName: company.companyName,
+          matchScore: 60 + (companyVerification.redFlags.length * 5),
+          aliases: [],
+          listName: 'UK Companies House',
+          listType: 'company_verification',
+          sourceUrl: `https://find-and-update.company-information.service.gov.uk/company/${company.companyNumber}`,
+          nationality: ['United Kingdom'],
+          positions: [],
+          reviewStatus: ReviewStatus.PENDING,
+          metadata: {
+            companyNumber: company.companyNumber,
+            companyStatus: company.companyStatus,
+            redFlags: companyVerification.redFlags,
+            hasInsolvencyHistory: company.hasInsolvencyHistory,
+            hasCharges: company.hasCharges,
+            dateOfCreation: company.dateOfCreation,
+          },
+        });
+      }
+
+      // Check officers against sanctions lists
+      if (company.officers) {
+        for (const officer of company.officers) {
+          const officerSanctions = await searchSanctions(officer.name, {
+            nationality: officer.nationality,
+          });
+
+          for (const sanctionMatch of officerSanctions) {
+            matches.push({
+              matchType: MatchType.SANCTIONS,
+              entityName: `${officer.name} (Officer of ${company.companyName})`,
+              matchScore: sanctionMatch.matchScore,
+              aliases: sanctionMatch.entity.aliases,
+              listName: `${sanctionMatch.entity.list} Sanctions List`,
+              listType: 'sanctions',
+              sourceUrl: sanctionMatch.entity.listUrl,
+              nationality: sanctionMatch.entity.nationality || [],
+              positions: [officer.officerRole],
+              reviewStatus: ReviewStatus.PENDING,
+              metadata: {
+                isCompanyOfficer: true,
+                companyName: company.companyName,
+                companyNumber: company.companyNumber,
+                officerRole: officer.officerRole,
+                appointedOn: officer.appointedOn,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Check PEP lists (using mock data for now)
   if (request.subjectType === SubjectType.INDIVIDUAL) {
-    const pepMatches = findMatches(
+    const pepMatches = findMockPEPMatches(
       request.subjectName,
-      request.dateOfBirth,
-      MOCK_PEP_LIST,
-      MatchType.PEP
+      request.dateOfBirth
     );
     matches.push(...pepMatches);
   }
-
-  // Check adverse media
-  const adverseMediaMatches = findMatches(
-    request.subjectName,
-    request.dateOfBirth,
-    MOCK_ADVERSE_MEDIA,
-    MatchType.ADVERSE_MEDIA
-  );
-  matches.push(...adverseMediaMatches);
 
   // Calculate risk
   const { riskScore, riskLevel } = calculateRiskScore(matches);
@@ -131,10 +209,77 @@ export async function performAMLScreening(
     adverseMedia: matches.some(m => m.matchType === MatchType.ADVERSE_MEDIA),
     metadata: {
       timestamp: new Date().toISOString(),
-      provider: 'MockAMLService',
-      version: '1.0',
+      provider: 'ScotComply AML Service',
+      version: '2.0',
+      dataSources: [
+        'OFAC SDN List',
+        'UN Consolidated Sanctions List',
+        'EU Sanctions List',
+        'UK Companies House',
+        'Mock PEP Database',
+      ],
     },
   };
+}
+
+/**
+ * Mock PEP data (temporary until ComplyAdvantage integration)
+ */
+const MOCK_PEP_LIST = [
+  { 
+    name: 'Robert Johnson', 
+    dob: '1965-05-10', 
+    nationality: ['United Kingdom'], 
+    positions: ['Former Member of Parliament', 'Government Minister'],
+    list: 'UK PEP Database'
+  },
+  { 
+    name: 'Maria Garcia', 
+    dob: '1970-08-15', 
+    nationality: ['Spain'], 
+    positions: ['Mayor', 'Regional Government Official'],
+    list: 'EU PEP Database'
+  },
+];
+
+/**
+ * Find mock PEP matches (temporary function)
+ */
+function findMockPEPMatches(
+  searchName: string,
+  searchDob: Date | undefined
+): AMLMatch[] {
+  const matches: AMLMatch[] = [];
+
+  for (const entry of MOCK_PEP_LIST) {
+    const nameScore = calculateNameSimilarity(searchName, entry.name);
+    
+    if (nameScore >= 70) {
+      let finalScore = nameScore;
+      if (searchDob && entry.dob) {
+        const dobMatch = compareDates(searchDob, new Date(entry.dob));
+        if (dobMatch) {
+          finalScore = Math.min(100, nameScore + 15);
+        }
+      }
+
+      matches.push({
+        matchType: MatchType.PEP,
+        entityName: entry.name,
+        matchScore: finalScore,
+        aliases: [],
+        listName: entry.list,
+        listType: 'pep',
+        nationality: entry.nationality || [],
+        positions: entry.positions || [],
+        reviewStatus: ReviewStatus.PENDING,
+        dateOfBirth: entry.dob ? new Date(entry.dob) : undefined,
+        metadata: { source: 'mock_pep_database' },
+      });
+    }
+  }
+
+  return matches;
 }
 
 /**

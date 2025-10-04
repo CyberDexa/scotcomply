@@ -15,11 +15,22 @@ export default function RepairingStandardPage() {
   const [selectedProperty, setSelectedProperty] = useState<string>('')
   const [creating, setCreating] = useState(false)
 
-  const { data: propertiesData } = trpc.property.list.useQuery({ limit: 100 })
+  const { data: propertiesData, error: propertiesError } = trpc.property.list.useQuery({ limit: 100 })
   const properties = propertiesData?.properties || []
-  const { data: assessments, isLoading, refetch } = trpc.repairingStandard.getAssessments.useQuery()
-  const { data: stats } = trpc.repairingStandard.getAssessmentStats.useQuery()
+  const { data: assessments, isLoading, refetch, error: assessmentsError } = trpc.repairingStandard.getAssessments.useQuery(undefined)
+  const { data: stats, error: statsError } = trpc.repairingStandard.getAssessmentStats.useQuery(undefined)
   const createAssessment = trpc.repairingStandard.createAssessment.useMutation()
+
+  // Log errors for debugging
+  if (propertiesError) {
+    console.error('Properties error:', propertiesError)
+  }
+  if (assessmentsError) {
+    console.error('Assessments error:', assessmentsError)
+  }
+  if (statsError) {
+    console.error('Stats error:', statsError)
+  }
 
   const handleCreateAssessment = async () => {
     if (!selectedProperty) return
@@ -78,6 +89,23 @@ export default function RepairingStandardPage() {
           Scottish Repairing Standard 21-point compliance assessments for your properties
         </p>
       </div>
+
+      {/* Error Display */}
+      {(propertiesError || assessmentsError || statsError) && (
+        <Card className="mb-8 border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertTriangle className="h-5 w-5" />
+              <div>
+                <p className="font-semibold">Error loading data</p>
+                {propertiesError && <p className="text-sm">Properties: {propertiesError.message}</p>}
+                {assessmentsError && <p className="text-sm">Assessments: {assessmentsError.message}</p>}
+                {statsError && <p className="text-sm">Statistics: {statsError.message}</p>}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistics Cards */}
       {stats && (

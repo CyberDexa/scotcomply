@@ -15,25 +15,10 @@ export default function RepairingStandardPage() {
   const [selectedProperty, setSelectedProperty] = useState<string>('')
   const [creating, setCreating] = useState(false)
 
-  const { data: propertiesData } = trpc.property.list.useQuery({ limit: 100 }, {
-    retry: false,
-    onError: (error) => {
-      console.error('Failed to load properties:', error)
-    }
-  })
+  const { data: propertiesData } = trpc.property.list.useQuery({ limit: 100 })
   const properties = propertiesData?.properties || []
-  const { data: assessments, isLoading, refetch } = trpc.repairingStandard.getAssessments.useQuery(undefined, {
-    retry: false,
-    onError: (error) => {
-      console.error('Failed to load assessments:', error)
-    }
-  })
-  const { data: stats } = trpc.repairingStandard.getAssessmentStats.useQuery(undefined, {
-    retry: false,
-    onError: (error) => {
-      console.error('Failed to load stats:', error)
-    }
-  })
+  const { data: assessments, isLoading, refetch } = trpc.repairingStandard.getAssessments.useQuery()
+  const { data: stats } = trpc.repairingStandard.getAssessmentStats.useQuery()
   const createAssessment = trpc.repairingStandard.createAssessment.useMutation()
 
   const handleCreateAssessment = async () => {

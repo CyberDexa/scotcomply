@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, CheckCircle2, XCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, FileText, ExternalLink } from 'lucide-react'
-import { REPAIRING_STANDARD_CATEGORIES, REPAIRING_STANDARD_CHECKPOINTS } from '@/server/routers/repairing-standard'
+import { REPAIRING_STANDARD_CATEGORIES, REPAIRING_STANDARD_CHECKPOINTS } from '@/lib/repairing-standard-constants'
 import { getCertificatesForCheckpoint, isCertificateExpired, isCertificateExpiringSoon, getDaysUntilExpiry, getCertificateTypeName } from '@/lib/certificate-checkpoint-mapping'
 
 interface AssessmentWizardProps {

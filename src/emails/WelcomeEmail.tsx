@@ -43,12 +43,14 @@ export default function WelcomeEmail({
 
           <Section style={featureBox}>
             <Heading style={h2}>What You Can Do with ScotComply:</Heading>
-            <Text style={feature}>✅ Track all safety certificates (Gas, EICR, EPC)</Text>
-            <Text style={feature}>✅ Manage landlord registrations across all councils</Text>
-            <Text style={feature}>✅ Monitor HMO licenses and renewals</Text>
-            <Text style={feature}>✅ Conduct Repairing Standard assessments</Text>
-            <Text style={feature}>✅ Generate compliance reports and documents</Text>
-            <Text style={feature}>✅ Receive automated expiry reminders</Text>
+            <Text style={feature}>📋 <strong>Property Management</strong> - Centralized dashboard for all your properties</Text>
+            <Text style={feature}>🔔 <strong>Smart Alerts</strong> - Automated reminders for expiring certificates and renewals</Text>
+            <Text style={feature}>📄 <strong>Certificate Tracking</strong> - Monitor Gas Safety, EICR, EPC, and Legionella certificates</Text>
+            <Text style={feature}>🏠 <strong>Repairing Standard</strong> - Complete 21-point compliance assessments</Text>
+            <Text style={feature}>🏢 <strong>Registrations</strong> - Manage landlord registrations and HMO licenses</Text>
+            <Text style={feature}>🔍 <strong>AML Screening</strong> - Verify tenants and conduct anti-money laundering checks</Text>
+            <Text style={feature}>📊 <strong>Analytics Dashboard</strong> - Track compliance rates and portfolio health</Text>
+            <Text style={feature}>📧 <strong>Email Notifications</strong> - Stay informed with customizable alerts</Text>
           </Section>
 
           <Section style={buttonContainer}>
@@ -60,18 +62,24 @@ export default function WelcomeEmail({
           <Hr style={hr} />
 
           <Section style={infoBox}>
-            <Heading style={h3}>Getting Started:</Heading>
+            <Heading style={h3}>Quick Start Guide:</Heading>
             <Text style={listItem}>
-              1. <strong>Add Your Properties</strong> - Start by adding your rental properties to the system
+              1. <strong>Add Your First Property</strong> - Click &quot;Properties&quot; and add your rental addresses
             </Text>
             <Text style={listItem}>
-              2. <strong>Upload Certificates</strong> - Add your existing safety certificates
+              2. <strong>Upload Safety Certificates</strong> - Add existing Gas, EICR, and EPC certificates
             </Text>
             <Text style={listItem}>
-              3. <strong>Set Up Registrations</strong> - Enter your landlord registration details
+              3. <strong>Complete a Repairing Standard Assessment</strong> - Run your first 21-point compliance check
             </Text>
             <Text style={listItem}>
-              4. <strong>Enable Notifications</strong> - Configure how you&apos;d like to receive reminders
+              4. <strong>Set Up Your Registrations</strong> - Enter landlord registration and HMO license details
+            </Text>
+            <Text style={listItem}>
+              5. <strong>Configure Notifications</strong> - Choose how you&apos;d like to receive compliance alerts
+            </Text>
+            <Text style={startTip}>
+              💡 <em>Tip: Start with adding just one property to get familiar with the system, then add the rest of your portfolio.</em>
             </Text>
           </Section>
 
@@ -84,8 +92,8 @@ export default function WelcomeEmail({
               assistance, don&apos;t hesitate to reach out:
             </Text>
             <Text style={supportText}>
-              📧 Email: support@scotcomply.com<br />
-              📱 Phone: 0800 123 4567<br />
+              📧 Email: <Link href="mailto:support@scotcomply.co.uk" style={link}>support@scotcomply.co.uk</Link><br />
+              🌐 Website: <Link href="https://scotcomply.co.uk" style={link}>scotcomply.co.uk</Link><br />
               💬 Live Chat: Available in your dashboard
             </Text>
           </Section>
@@ -199,6 +207,14 @@ const listItem = {
   fontSize: '15px',
   lineHeight: '24px',
   margin: '12px 0',
+}
+
+const startTip = {
+  color: '#4B5563',
+  fontSize: '14px',
+  lineHeight: '20px',
+  margin: '16px 0 0 0',
+  fontStyle: 'italic' as const,
 }
 
 const buttonContainer = {

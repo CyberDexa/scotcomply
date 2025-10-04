@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/lib/trpc'
 import { hash } from 'bcryptjs'
+import { sendEmail } from '@/lib/email'
+import WelcomeEmail from '@/emails/WelcomeEmail'
+import { env } from '@/lib/env'
 
 export const userRouter = createTRPCRouter({
   register: publicProcedure
@@ -37,6 +40,19 @@ export const userRouter = createTRPCRouter({
           role: true,
           createdAt: true,
         },
+      })
+
+      // Send welcome email asynchronously (don't block registration if it fails)
+      sendEmail({
+        to: user.email,
+        subject: 'Welcome to ScotComply - Your Scottish Compliance Platform',
+        react: WelcomeEmail({
+          name: user.name,
+          dashboardUrl: `${env.APP_URL}/dashboard`,
+        }),
+      }).catch((error) => {
+        console.error('Failed to send welcome email to:', user.email, error)
+        // Don't throw - we don't want email failures to block registration
       })
 
       return user

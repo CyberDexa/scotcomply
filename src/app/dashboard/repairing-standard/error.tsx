@@ -67,7 +67,7 @@ export default function Error({
               </p>
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>Check your internet connection</li>
-                <li>Make sure you're logged in</li>
+                <li>Make sure you&apos;re logged in</li>
                 <li>Try refreshing the page</li>
                 <li>Clear your browser cache and cookies</li>
               </ul>

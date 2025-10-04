@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '@/lib/trpc'
-import { REPAIRING_STANDARD_CATEGORIES, REPAIRING_STANDARD_CHECKPOINTS } from '@/lib/repairing-standard-constants'
+import { REPAIRING_STANDARD_CHECKPOINTS } from '@/lib/repairing-standard-constants'
 
 /**
  * Repairing Standard Assessment Router

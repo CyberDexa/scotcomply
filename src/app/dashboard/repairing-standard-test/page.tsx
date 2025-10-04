@@ -8,6 +8,17 @@ import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 export default function RepairingStandardTestPage() {
   const [testResults, setTestResults] = useState<any>({})
   const [testing, setTesting] = useState(false)
+  const [envInfo, setEnvInfo] = useState<any>({})
+
+  useEffect(() => {
+    // Get environment info in the browser
+    setEnvInfo({
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      protocol: window.location.protocol,
+      host: window.location.host,
+    })
+  }, [])
 
   const runTests = async () => {
     setTesting(true)
@@ -102,10 +113,10 @@ export default function RepairingStandardTestPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm font-mono">
-            <div>User Agent: {navigator.userAgent}</div>
-            <div>URL: {window.location.href}</div>
-            <div>Protocol: {window.location.protocol}</div>
-            <div>Host: {window.location.host}</div>
+            <div>User Agent: {envInfo.userAgent || 'Loading...'}</div>
+            <div>URL: {envInfo.url || 'Loading...'}</div>
+            <div>Protocol: {envInfo.protocol || 'Loading...'}</div>
+            <div>Host: {envInfo.host || 'Loading...'}</div>
           </div>
         </CardContent>
       </Card>

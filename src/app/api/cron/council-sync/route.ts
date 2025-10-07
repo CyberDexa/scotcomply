@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
             where: { id: council.id },
             data: {
               ...scrapeResult.data,
+              lastScraped: new Date(),
               updatedAt: new Date(),
             },
           })
@@ -136,6 +137,14 @@ export async function GET(request: NextRequest) {
           }
         } else {
           console.log(`✓ No changes for ${council.councilName}`)
+          
+          // Update lastScraped even when no changes detected
+          await prisma.councilData.update({
+            where: { id: council.id },
+            data: {
+              lastScraped: new Date(),
+            },
+          })
         }
 
         // Rate limiting: wait 2 seconds between requests

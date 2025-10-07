@@ -482,6 +482,7 @@ model CouncilData {
   notes                String?              @db.Text
   metadata             Json?                // Additional custom data
   
+  lastScraped          DateTime?            // Last time data was scraped from website
   lastUpdated          DateTime             @updatedAt
   createdAt            DateTime             @default(now())
 

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataFreshnessBadge } from '@/components/ui/data-freshness-badge';
 import {
   Building2,
   Phone,
@@ -76,9 +77,12 @@ export default function CouncilDetailPage({ params }: { params: Promise<{ id: st
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
+        <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">{council.councilName}</h1>
-          <p className="text-muted-foreground">{council.councilArea}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground">{council.councilArea}</p>
+            <DataFreshnessBadge lastScraped={council.lastScraped} />
+          </div>
         </div>
         <div className="flex gap-2">
           {council.websiteUrl && (

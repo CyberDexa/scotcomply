@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/notifications",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/council-sync",
+      "schedule": "0 3 * * 1"
     }
   ]
 }

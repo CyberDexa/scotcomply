@@ -11,10 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { scrapeCouncil, detectChanges } from '@/lib/council-scraper'
-import { AlertSeverity, AlertCategory, ChangeType, ImpactLevel } from '@prisma/client'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300 // 5 minutes max
+export const maxDuration = 300 // 5 minutes for long-running cron job
 
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
@@ -65,6 +64,13 @@ export async function GET(request: NextRequest) {
     // Process each council
     for (const council of sortedCouncils) {
       try {
+        // Skip councils without landlordRegUrl
+        if (!council.landlordRegUrl) {
+          console.log(`⏭️  Skipping ${council.councilName} - no URL`)
+          results.failed++
+          continue
+        }
+
         console.log(`\n🔍 Checking ${council.councilName}...`)
 
         // Scrape the landlord registration URL
@@ -97,37 +103,21 @@ export async function GET(request: NextRequest) {
             data: {
               ...scrapeResult.data,
               lastScraped: new Date(),
-              updatedAt: new Date(),
             },
           })
 
-          // Create change records
-          for (const changeDescription of changes) {
-            await prisma.councilChange.create({
+          // Create alerts if changes detected
+          if (changes.length > 0) {
+            await prisma.regulatoryAlert.create({
               data: {
                 councilId: council.id,
-                changeType: determineChangeType(changeDescription),
+                alertType: 'FEE_CHANGE',
+                category: 'LANDLORD_REGISTRATION',
                 title: `${council.councilName} Update`,
-                description: changeDescription,
-                impactLevel: determineImpactLevel(changeDescription),
-                effectiveDate: new Date(),
-                source: council.landlordRegUrl,
-              },
-            })
-          }
-
-          // Create alerts for significant changes
-          if (changes.some((c) => c.includes('fee'))) {
-            const alert = await prisma.regulatoryAlert.create({
-              data: {
-                councilId: council.id,
-                alertType: 'FEE_INCREASE',
-                category: AlertCategory.LANDLORD_REGISTRATION,
-                title: `Fee Change: ${council.councilName}`,
-                description: changes.join('. '),
-                severity: determineSeverity(changes),
+                description: `Automated sync detected changes: ${changes.join('; ')}`,
+                severity: 'MEDIUM',
                 status: 'ACTIVE',
-                source: council.landlordRegUrl,
+                sourceUrl: council.landlordRegUrl,
                 effectiveDate: new Date(),
               },
             })
@@ -178,75 +168,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Determine the type of change from description
- */
-function determineChangeType(description: string): ChangeType {
-  if (description.toLowerCase().includes('fee')) {
-    return ChangeType.FEE
-  }
-  if (
-    description.toLowerCase().includes('time') ||
-    description.toLowerCase().includes('processing')
-  ) {
-    return ChangeType.DEADLINE
-  }
-  if (description.toLowerCase().includes('contact')) {
-    return ChangeType.CONTACT
-  }
-  return ChangeType.POLICY
-}
-
-/**
- * Determine impact level of change
- */
-function determineImpactLevel(description: string): ImpactLevel {
-  // Fee increases are high impact
-  if (description.toLowerCase().includes('fee')) {
-    const match = description.match(/from £(\d+) to £(\d+)/)
-    if (match) {
-      const oldFee = parseInt(match[1])
-      const newFee = parseInt(match[2])
-      const increase = ((newFee - oldFee) / oldFee) * 100
-
-      if (increase > 20) return ImpactLevel.HIGH
-      if (increase > 10) return ImpactLevel.MEDIUM
-      return ImpactLevel.LOW
-    }
-    return ImpactLevel.MEDIUM
-  }
-
-  // Contact changes are low impact
-  if (
-    description.toLowerCase().includes('contact') ||
-    description.toLowerCase().includes('email') ||
-    description.toLowerCase().includes('phone')
-  ) {
-    return ImpactLevel.LOW
-  }
-
-  return ImpactLevel.MEDIUM
-}
-
-/**
- * Determine alert severity
- */
-function determineSeverity(changes: string[]): AlertSeverity {
-  const hasMajorFeeIncrease = changes.some((c) => {
-    const match = c.match(/from £(\d+) to £(\d+)/)
-    if (match) {
-      const oldFee = parseInt(match[1])
-      const newFee = parseInt(match[2])
-      return ((newFee - oldFee) / oldFee) * 100 > 20
-    }
-    return false
-  })
-
-  if (hasMajorFeeIncrease) return AlertSeverity.HIGH
-  if (changes.some((c) => c.toLowerCase().includes('fee')))
-    return AlertSeverity.MEDIUM
-
-  return AlertSeverity.LOW
 }

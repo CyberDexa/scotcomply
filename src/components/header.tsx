@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bell, LogOut, Settings, User, CheckCheck, X, ExternalLink, Menu } from 'lucide-react'
+import { Bell, LogOut, Settings, User, CheckCheck, X, ExternalLink, Menu, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -242,6 +242,14 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+            {session?.user?.role === 'ADMIN' && (
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/admin/councils">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Admin Panel</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings">
                 <Settings className="mr-2 h-4 w-4" />

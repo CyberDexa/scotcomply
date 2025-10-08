@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
           // Check if we already created an alert for this article
           const existingAlert = await prisma.regulatoryAlert.findFirst({
             where: {
-              source: article.link,
+              sourceUrl: article.link,
             },
           })
 
@@ -95,13 +95,13 @@ export async function GET(request: NextRequest) {
           const alert = await prisma.regulatoryAlert.create({
             data: {
               councilId: council.id,
-              alertType: 'POLICY_CHANGE',
+              alertType: 'POLICY_UPDATE',
               category: determineAlertCategory(article),
               title: generateAlertTitle(council.councilName, article),
               description: `${article.title}\n\n${article.description}\n\nKeywords: ${article.keywords.join(', ')}`,
               severity: determineAlertSeverity(article),
               status: 'ACTIVE',
-              source: article.link,
+              sourceUrl: article.link,
               effectiveDate: article.pubDate,
             },
           })

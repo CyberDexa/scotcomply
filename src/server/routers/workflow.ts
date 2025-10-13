@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '@/lib/trpc'
 import { prisma } from '@/lib/prisma'
-import { WorkflowAction, WorkflowTrigger } from '@prisma/client'
+import { WorkflowAction, WorkflowTrigger, Prisma } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 
 export const workflowRouter = createTRPCRouter({
@@ -24,18 +24,18 @@ export const workflowRouter = createTRPCRouter({
         ),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const workflow = await prisma.workflow.create({
         data: {
           name: input.name,
           description: input.description,
           trigger: input.trigger,
-          conditions: input.conditions as any,
+          conditions: input.conditions as Prisma.InputJsonValue,
           active: input.active,
           steps: {
             create: input.steps.map((step) => ({
               action: step.action,
-              config: step.config as any,
+              config: step.config as Prisma.InputJsonValue,
               order: step.order,
               delay: step.delay,
             })),
@@ -61,8 +61,8 @@ export const workflowRouter = createTRPCRouter({
         offset: z.number().min(0).default(0),
       })
     )
-    .query(async ({ ctx, input }) => {
-      const where: any = {}
+    .query(async ({ input }) => {
+      const where: Prisma.WorkflowWhereInput = {}
 
       if (input.active !== undefined) {
         where.active = input.active
@@ -97,7 +97,7 @@ export const workflowRouter = createTRPCRouter({
   // Get workflow by ID
   getById: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       const workflow = await prisma.workflow.findUnique({
         where: {
           id: input.id,
@@ -141,7 +141,7 @@ export const workflowRouter = createTRPCRouter({
           .optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const workflow = await prisma.workflow.findUnique({
         where: {
           id: input.id,
@@ -167,13 +167,13 @@ export const workflowRouter = createTRPCRouter({
         data: {
           name: input.name,
           description: input.description,
-          conditions: input.conditions as any,
+          conditions: input.conditions as Prisma.InputJsonValue,
           active: input.active,
           ...(input.steps && {
             steps: {
               create: input.steps.map((step) => ({
                 action: step.action,
-                config: step.config as any,
+                config: step.config as Prisma.InputJsonValue,
                 order: step.order,
                 delay: step.delay,
               })),
@@ -193,7 +193,7 @@ export const workflowRouter = createTRPCRouter({
   // Delete workflow
   delete: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const workflow = await prisma.workflow.findUnique({
         where: {
           id: input.id,
@@ -222,7 +222,7 @@ export const workflowRouter = createTRPCRouter({
         active: z.boolean(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const workflow = await prisma.workflow.findUnique({
         where: {
           id: input.id,

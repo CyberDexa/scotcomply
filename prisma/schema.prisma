@@ -44,6 +44,10 @@ model User {
   // Notification Type Preferences (JSON)
   notificationPreferences Json? // { certificates: { email: true, sms: false }, maintenance: { email: true, sms: true }, ... }
 
+  // Password Reset
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
   // Relations
   accounts              Account[]
   sessions              Session[]

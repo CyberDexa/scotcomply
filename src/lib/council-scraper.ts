@@ -1,7 +1,8 @@
 /**
  * Council Website Scraper
  * 
- * Scrapes council websites to detect changes in:
+ * Uses Puppeteer for browser automation to bypass anti-bot protection
+ * and scrape council websites to detect changes in:
  * - Landlord registration fees
  * - HMO license fees
  * - Processing times
@@ -10,6 +11,7 @@
  */
 
 import * as cheerio from 'cheerio'
+import puppeteer from 'puppeteer'
 
 interface CouncilScrapedData {
   registrationFee?: number
@@ -30,29 +32,57 @@ interface ScrapeResult {
 }
 
 /**
- * Generic scraper that attempts to extract common patterns
+ * Scrape council website using Puppeteer (real browser)
+ * This bypasses most anti-bot protection
  */
 export async function scrapeCouncilWebsite(
   councilName: string,
   url: string
 ): Promise<ScrapeResult> {
+  let browser = null
+  
   try {
     console.log(`🔍 Scraping ${councilName} - ${url}`)
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'ScotComply/1.0 (Compliance Monitoring)',
-      },
+    // Launch headless browser
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+      ],
     })
 
-    if (!response.ok) {
+    const page = await browser.newPage()
+
+    // Set realistic viewport and user agent
+    await page.setViewport({ width: 1920, height: 1080 })
+    await page.setUserAgent(
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    )
+
+    // Navigate to the page with timeout
+    try {
+      await page.goto(url, {
+        waitUntil: 'networkidle0',
+        timeout: 30000,
+      })
+    } catch (navError) {
+      await browser.close()
       return {
         success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
+        error: `Navigation failed: ${navError instanceof Error ? navError.message : 'Timeout or network error'}`,
       }
     }
 
-    const html = await response.text()
+    // Get the HTML content
+    const html = await page.content()
+    await browser.close()
+
+    // Parse with Cheerio
     const $ = cheerio.load(html)
 
     const scrapedData: CouncilScrapedData = {
@@ -93,6 +123,15 @@ export async function scrapeCouncilWebsite(
       data: scrapedData,
     }
   } catch (error) {
+    // Make sure browser is closed on error
+    if (browser) {
+      try {
+        await browser.close()
+      } catch (closeError) {
+        console.error('Failed to close browser:', closeError)
+      }
+    }
+    
     console.error(`❌ Failed to scrape ${councilName}:`, error)
     return {
       success: false,

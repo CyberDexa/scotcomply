@@ -97,11 +97,16 @@ export async function GET(request: NextRequest) {
           console.log(`🔔 Changes detected for ${council.councilName}:`, changes)
           results.changes += changes.length
 
-          // Update council data
+          // Update council data with only the fields that exist in the schema
           await prisma.councilData.update({
             where: { id: council.id },
             data: {
-              ...scrapeResult.data,
+              registrationFee: scrapeResult.data.registrationFee ?? council.registrationFee,
+              renewalFee: scrapeResult.data.renewalFee ?? council.renewalFee,
+              hmoFee: scrapeResult.data.hmoFee ?? council.hmoFee,
+              processingTimeDays: scrapeResult.data.processingTimeDays ?? council.processingTimeDays,
+              contactEmail: scrapeResult.data.contactEmail ?? council.contactEmail,
+              contactPhone: scrapeResult.data.contactPhone ?? council.contactPhone,
               lastScraped: new Date(),
             },
           })

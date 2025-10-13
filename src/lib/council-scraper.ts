@@ -8,10 +8,13 @@
  * - Processing times
  * - Contact information
  * - Policy updates
+ * 
+ * Note: Uses puppeteer-core + @sparticuz/chromium for Vercel compatibility
  */
 
 import * as cheerio from 'cheerio'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 
 interface CouncilScrapedData {
   registrationFee?: number
@@ -44,16 +47,29 @@ export async function scrapeCouncilWebsite(
   try {
     console.log(`🔍 Scraping ${councilName} - ${url}`)
 
-    // Launch headless browser
+    // Determine if running on Vercel (serverless) or locally
+    const isProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production'
+
+    // Launch headless browser with appropriate configuration
     browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-      ],
+      args: isProduction 
+        ? chromium.args
+        : [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu',
+          ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: isProduction
+        ? await chromium.executablePath()
+        : process.platform === 'win32'
+          ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+          : process.platform === 'darwin'
+            ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+            : '/usr/bin/google-chrome',
+      headless: chromium.headless,
     })
 
     const page = await browser.newPage()

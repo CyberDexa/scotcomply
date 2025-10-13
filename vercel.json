@@ -12,5 +12,10 @@
       "path": "/api/cron/rss-monitor",
       "schedule": "0 9 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/cron/council-sync/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }

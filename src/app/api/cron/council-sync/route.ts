@@ -90,15 +90,17 @@ export async function GET(request: NextRequest) {
 
         results.successful++
 
+        // Store scraped data with non-null assertion (verified by success check above)
+        const scrapedData = scrapeResult.data!
+
         // Detect changes
-        const changes = detectChanges(council, scrapeResult.data!)
+        const changes = detectChanges(council, scrapedData)
 
         if (changes.length > 0) {
           console.log(`🔔 Changes detected for ${council.councilName}:`, changes)
           results.changes += changes.length
 
           // Update council data with only the fields that exist in the schema
-          const scrapedData = scrapeResult.data!
           await prisma.councilData.update({
             where: { id: council.id },
             data: {

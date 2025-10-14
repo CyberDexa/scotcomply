@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/council-sync",
       "schedule": "0 3 * * 1"
-    },
-    {
-      "path": "/api/cron/rss-monitor",
-      "schedule": "0 9 * * *"
     }
   ],
   "functions": {

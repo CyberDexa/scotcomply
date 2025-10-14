@@ -1,0 +1,37 @@
+name: RSS Monitor Cron Job
+
+on:
+  schedule:
+    # Run every day at 9 AM GMT
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  rss-monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger RSS Monitor
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://scottish-compliance-4gnrlld19-cyberdexas-projects.vercel.app/api/cron/rss-monitor)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ RSS Monitor failed with status $http_code"
+            exit 1
+          fi
+          
+          echo "✅ RSS Monitor completed successfully"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "⚠️ RSS Monitor cron job failed"
+          echo "Check logs at: https://github.com/${{ github.repository }}/actions"

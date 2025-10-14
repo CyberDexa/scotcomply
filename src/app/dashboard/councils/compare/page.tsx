@@ -30,11 +30,15 @@ import {
 export default function CouncilComparisonPage() {
   const [selectedCouncils, setSelectedCouncils] = useState<string[]>([]);
 
-  const { data: councils } = trpc.council.listCouncils.useQuery({ limit: 32 });
+  const { data: councils, isLoading, error } = trpc.council.listCouncils.useQuery({ limit: 32 });
   const { data: comparison } = trpc.council.compareCouncils.useQuery(
     { councilIds: selectedCouncils },
     { enabled: selectedCouncils.length >= 2 }
   );
+
+  console.log('Councils data:', councils);
+  console.log('Is loading:', isLoading);
+  console.log('Error:', error);
 
   const handleSelectCouncil = (councilId: string) => {
     if (selectedCouncils.includes(councilId)) {
@@ -98,24 +102,44 @@ export default function CouncilComparisonPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {councils?.map((council) => (
-                <Button
-                  key={council.id}
-                  variant={selectedCouncils.includes(council.id) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleSelectCouncil(council.id)}
-                  disabled={
-                    !selectedCouncils.includes(council.id) && selectedCouncils.length >= 5
-                  }
-                >
-                  {council.councilName}
-                  {selectedCouncils.includes(council.id) && (
-                    <CheckCircle2 className="ml-2 h-4 w-4" />
-                  )}
-                </Button>
-              ))}
-            </div>
+            {isLoading && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading councils...</p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="text-center py-8">
+                <p className="text-red-600">Error: {error.message}</p>
+              </div>
+            )}
+            
+            {!isLoading && !error && councils && councils.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No councils found</p>
+              </div>
+            )}
+            
+            {!isLoading && !error && councils && councils.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {councils.map((council) => (
+                  <Button
+                    key={council.id}
+                    variant={selectedCouncils.includes(council.id) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSelectCouncil(council.id)}
+                    disabled={
+                      !selectedCouncils.includes(council.id) && selectedCouncils.length >= 5
+                    }
+                  >
+                    {council.councilName}
+                    {selectedCouncils.includes(council.id) && (
+                      <CheckCircle2 className="ml-2 h-4 w-4" />
+                    )}
+                  </Button>
+                ))}
+              </div>
+            )}
 
             {selectedCouncils.length > 0 && (
               <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">

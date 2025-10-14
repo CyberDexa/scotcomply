@@ -1,0 +1,29 @@
+name: Database Keep-Alive
+
+on:
+  schedule:
+    # Run every 4 minutes to prevent Neon free tier auto-pause (5 min timeout)
+    - cron: '*/4 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Database Keep-Alive Endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://scotcomply.co.uk/api/cron/keep-alive)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ Keep-alive failed with status $http_code"
+            exit 1
+          fi
+          
+          echo "✅ Database kept alive successfully"

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { scottishCouncils } from '@/../../prisma/seed/councils';
+import { scottishCouncils } from '../../../../../prisma/seed/councils';
 
 export async function POST(request: Request) {
   try {

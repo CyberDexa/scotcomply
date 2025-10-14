@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendPasswordResetEmail } from '@/lib/email';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -41,18 +42,24 @@ export async function POST(request: NextRequest) {
     // Create reset URL
     const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${resetToken}`;
 
-    // TODO: Send email (for now, log to console in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('\n🔐 Password Reset Link:');
-      console.log('━'.repeat(80));
-      console.log(`Email: ${email}`);
-      console.log(`Reset URL: ${resetUrl}`);
-      console.log('━'.repeat(80));
-      console.log('⚠️  In production, this will be sent via email\n');
-    }
+    // Send password reset email
+    try {
+      const emailResult = await sendPasswordResetEmail({
+        email: user.email,
+        resetUrl,
+        userName: user.name || undefined,
+      });
 
-    // TODO: Implement email sending in production
-    // await sendPasswordResetEmail(user.email, resetUrl);
+      if (emailResult.success) {
+        console.log(`✅ Password reset email sent to ${user.email}`);
+      } else {
+        console.error(`❌ Failed to send password reset email: ${emailResult.error}`);
+        // Continue anyway - token is saved, user might try manual link
+      }
+    } catch (emailError) {
+      console.error('❌ Error sending password reset email:', emailError);
+      // Continue anyway - token is saved
+    }
 
     return NextResponse.json({
       message: 'If an account exists with this email, a reset link will be sent',

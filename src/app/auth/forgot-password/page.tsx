@@ -95,6 +95,17 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      {/* Header Logo */}
+      <Link href="/" className="absolute top-8 left-8 flex items-center gap-2">
+        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+          <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L4 6V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V6L12 2Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2"/>
+            <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <span className="text-xl font-bold text-gray-900">ScotComply</span>
+      </Link>
+      
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Forgot Password?</CardTitle>

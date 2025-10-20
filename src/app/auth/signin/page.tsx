@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Shield, ArrowRight, BarChart3, Clock, FileCheck, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, BarChart3, Clock, FileCheck, CheckCircle2 } from 'lucide-react'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -54,7 +54,12 @@ export default function SignInPage() {
         
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-3 text-white mb-16">
-            <Shield className="h-10 w-10" />
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 6V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V6L12 2Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2"/>
+                <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <span className="text-3xl font-bold">ScotComply</span>
           </Link>
           
@@ -108,7 +113,12 @@ export default function SignInPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center mb-8">
             <Link href="/" className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-blue-600" />
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L4 6V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V6L12 2Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2"/>
+                  <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
               <span className="text-2xl font-bold text-gray-900">ScotComply</span>
             </Link>
           </div>

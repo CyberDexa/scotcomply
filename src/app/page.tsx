@@ -135,7 +135,10 @@ export default function HomePage() {
               
               <div className="text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <Shield className="h-10 w-10 text-white" strokeWidth={2} />
+                  <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L4 6V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V6L12 2Z" fill="white" stroke="white" strokeWidth="1.5"/>
+                    <path d="M9 12L11 14L15 10" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-gray-900">Zero Compliance Gaps</h3>
                 <p className="text-gray-600 text-lg leading-relaxed">
@@ -266,8 +269,11 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col items-center text-center mb-8">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <Shield className="h-7 w-7 text-white" strokeWidth={2.5} />
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L4 6V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V6L12 2Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2"/>
+                    <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
                 <span className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">
                   ScotComply

@@ -15,10 +15,16 @@ export async function POST(request: Request) {
 
     // Seed councils
     for (const council of scottishCouncils) {
+      // Ensure councilArea is always set (default to councilName if missing)
+      const councilData = {
+        ...council,
+        councilArea: council.councilArea || council.councilName,
+      };
+      
       await prisma.councilData.upsert({
         where: { councilName: council.councilName },
-        update: council,
-        create: council,
+        update: councilData,
+        create: councilData,
       });
     }
 

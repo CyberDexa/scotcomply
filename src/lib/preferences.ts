@@ -24,7 +24,7 @@ export function formatDate(
   const dateFormatStr = preferences?.dateFormat || 'DD/MM/YYYY'
 
   // Convert our format string to date-fns format
-  let fnsFormat = dateFormatStr
+  const fnsFormat = dateFormatStr
     .replace('DD', 'dd')
     .replace('MM', 'MM')
     .replace('YYYY', 'yyyy')

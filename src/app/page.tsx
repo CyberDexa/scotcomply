@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, CheckCircle2, Shield, Clock, TrendingUp, FileCheck, AlertCircle, Lock, Star } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock, TrendingUp, FileCheck, AlertCircle, Lock, Star } from 'lucide-react'
 
 export default function HomePage() {
   return (
@@ -9,10 +9,13 @@ export default function HomePage() {
       <nav className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-              <Shield className="h-7 w-7 text-blue-600" strokeWidth={2.5} />
+            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-sm">
+              <svg className="w-9 h-9" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 6V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V6L12 2Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2"/>
+                <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
-            <span className="text-3xl font-extrabold bg-gradient-to-r from-blue-900 to-blue-600 bg-clip-text text-transparent">
+            <span className="text-3xl font-extrabold text-gray-900">
               ScotComply
             </span>
           </div>

@@ -4,7 +4,7 @@
   "description": "A comprehensive compliance tracking platform for Scottish letting agents and landlords",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "next lint",
